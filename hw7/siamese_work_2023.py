@@ -1,11 +1,7 @@
-import random
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.utils import plot_model
 from tensorflow.keras import backend as K
-
-num_classes = 10
-
 
 def test():
     path = './dataset/mnist.npz'
@@ -22,129 +18,78 @@ def test():
     x_test = np.expand_dims(x_test, axis=-1)
     x_test = tf.image.resize(x_test, [h, w]).numpy()  # if we want to resize
 
-    # 测试也是255归一化的数据，请不要改归一化
+    #测试也是255归一化的数据，请不要改归一化
     x_train = x_train / 255.
-    x_test = x_test / 255.
+    x_test = x_test/ 255.
+	
 
-    # WORK1: --------------BEGIN-------------------
-    # 构建数据平衡采样方法：make_batch
-    # 参数等都可以自定义
-    # 返回值为(input_a, input_b), label
-    # input_a形状为(batch_size,14,14,1),input_b形状为(batch_size,14,14,1),label形状为(batch_size,)
-    def make_batch(batch_size, dataset):
-        s_index = np.arange(len(dataset[1]))
-        np.random.shuffle(s_index)
-        s_y = dataset[1][s_index]
-        s_x = dataset[0][s_index]
-        index = [np.where(s_y == i)[0] for i in range(num_classes)]
-        len_digits = [len(index[i]) for i in range(num_classes)]
+	#WORK1: --------------BEGIN-------------------
+    #构建数据平衡采样方法：make_batch
+	#参数等都可以自定义
+	#返回值为(input_a, input_b), label
+	#input_a形状为(batch_size,14,14,1),input_b形状为(batch_size,14,14,1),label形状为(batch_size,)
+	def make_batch(batch_size,dataset):
 
-        pairs_l = []
-        pairs_r = []
-        labels = []
-        for c in range(num_classes):
-            ran = random.randrange(1, len_digits[c])  # for each class: [1, classnum) rand list
-            for i in range(800):
-                i1, i2 = index[c][i], index[c][(i + ran) % len_digits[c]]
-                pairs_l.append(s_x[i1])
-                pairs_r.append(s_x[i2])
-                labels.append(0)  # add positive samples (overall 800*10)
-        for c in range(num_classes):
-            for i in range(c):  # change c to num_classes
-                if c == i:
-                    continue
+		return (input_a, input_b), label
+    #WORK1: --------------END-------------------
+    
+	#WORK2: --------------BEGIN-------------------
+	#根据make_batch的设计方式，给出相应的train_set、val_set
+	#这两个数据集要作为make_batch(batch_size,dataset)的dataset参数，构成采样数据的来源
+	train_set = 
+    val_set = 
+	#WORK2: --------------END-------------------
 
-                for _ in range(200):
-                    ran1 = random.randrange(1, len_digits[c])
-                    ran2 = random.randrange(1, len_digits[i])
-                    i1, i2 = index[c][ran1], index[i][ran2]
-                    pairs_l.append(s_x[i1])
-                    pairs_r.append(s_x[i2])
-                    labels.append(1)  # add negative samples (overall 200*45???)
-
-        input_a = np.array(pairs_l)
-        input_b = np.array(pairs_r)
-        label = np.array(labels).astype('float32')
-
-        return (input_a, input_b), label
-
-    # WORK1: --------------END-------------------
-
-    # WORK2: --------------BEGIN-------------------
-    # 根据make_batch的设计方式，给出相应的train_set、val_set
-    # 这两个数据集要作为make_batch(batch_size,dataset)的dataset参数，构成采样数据的来源
-    train_set = [x_train, y_train]
-    val_set = [x_test, y_test]
-
-    # WORK2: --------------END-------------------
-
-    def data_generator(batch_size, dataset):
+    def data_generator(batch_size,dataset):
         while True:
-            yield make_batch(batch_size, dataset)
-
-    train_data = data_generator(64, train_set)
-    test_data = data_generator(64, val_set)
-
+            yield make_batch(batch_size,dataset)
+    
     Q = 5
-
-    # WORK3: --------------BEGIN-------------------
+    #WORK3: --------------BEGIN-------------------
     # 实现损失函数
     def loss(y_true, y_pred):
-        loss_p = (1 - y_true) * 2 / Q * y_pred ** 2
-        loss_n = y_true * 2 * Q * K.exp(-2.77 / Q * y_pred)
+        loss_p = 
+        loss_n = 
 
-        loss = K.mean(loss_p + loss_n)
+        loss = 
         return loss
-
     # WORK3: --------------END-------------------
 
-    # WORK4: --------------BEGIN-------------------
-    # 构建siamese模型,输入为[input_a, input_b],输出为distance
+    #WORK4: --------------BEGIN-------------------
+	#构建siamese模型,输入为[input_a, input_b],输出为distance
     def build_model():
-        # 注意，为防止梯度爆炸，对distance添加保护措施
-        input = tf.keras.layers.Input(shape=(14, 14, 1), name='data')
-        reshape = tf.keras.layers.Reshape(target_shape=196, name='reshape')(input)
-        hidden_a = tf.keras.layers.Dense(200, activation='relu', name='hidden1')(reshape)
-        hidden_b = tf.keras.layers.Dense(10, activation='relu', name='hidden2')(hidden_a)
+        
+    
+        #注意，为防止梯度爆炸，对distance添加保护措施
+		distance = K.sqrt(K.sum(tf.square(hidden_a - hidden_b), axis=1))
+        model = tf.keras.Model(inputs=, outputs=distance)
 
-        distance = K.sqrt(K.sum(tf.square(hidden_a - hidden_b), axis=1))
-        model = tf.keras.Model(inputs=input, outputs=distance)
-
-        return model
-
-    # WORK4: --------------END-------------------
-
-    model = build_model()
-    plot_model(model, to_file='./test_figure/step1/model.png', show_shapes=True, expand_nested=True)
-
-    # 注意，tf.keras.metrics.AUC()中，函数使用时默认正例标签为1，而在我们任务中，正例标签为0
-    # 为了让我们定义的正例auc贯穿始终，用1-y_true和1-norm(y_pred)当作auc的标签和概率
-    # (在我们的任务中，反例（y_true=1）的距离大，正例（y_true=0）的距离远，
-    # 距离归一化norm(y_pred)后刚好符合反例（y_true=1）概率的变换趋势，1-norm(y_pred)就当作正例概率)
+        return model 
+    #WORK4: --------------END-------------------
+    
+	model=build_model()
+    plot_model(model, to_file='./test_figure/step1/model.png', show_shapes=True,expand_nested=True)
+        
+    #注意，tf.keras.metrics.AUC()中，函数使用时默认正例标签为1，而在我们任务中，正例标签为0
+    #为了让我们定义的正例auc贯穿始终，用1-y_true和1-norm(y_pred)当作auc的标签和概率
+    #(在我们的任务中，反例（y_true=1）的距离大，正例（y_true=0）的距离远，
+    #距离归一化norm(y_pred)后刚好符合反例（y_true=1）概率的变换趋势，1-norm(y_pred)就当作正例概率)
     auc_ = tf.keras.metrics.AUC()
-
-    def auc(y_true, y_pred):
+	def auc(y_true, y_pred):
         y_pred = tf.keras.layers.Flatten()(y_pred)
-        y_pred = 1 - (y_pred - K.min(y_pred)) / (K.max(y_pred) - K.min(y_pred))
-        y_true = 1 - tf.keras.layers.Flatten()(y_true)
+        y_pred = 1-(y_pred - K.min(y_pred))/(K.max(y_pred) - K.min(y_pred))
+        y_true = 1-tf.keras.layers.Flatten()(y_true)
         return auc_(y_true, y_pred)
-
-    # WORK5: --------------BEGIN-------------------
-    # 训练模型，参数可根据自己构建模型选取
-    # 对于推荐的两层全连接模型，推荐参数如下：
-    # 一般5-8个迭代以内auc可上0.97
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
-                  loss=loss,
-                  metrics=[auc])
-    model.fit(train_data,
-              validation_data=test_data,
-              batch_size=64,
-              epochs=5,
-              verbose=2)
-    # WORK5: --------------END-------------------
+    
+	#WORK5: --------------BEGIN-------------------
+	#训练模型，参数可根据自己构建模型选取
+	#对于推荐的两层全连接模型，推荐参数如下：
+	#一般5-8个迭代以内auc可上0.97
+    model.compile(optimizer=, loss=, metrics=[auc])
+    model.fit(, verbose = 2)
+    #WORK5: --------------END-------------------
     return model
-
-
+	
 '''
 import numpy as np
 import tensorflow as tf
@@ -259,4 +204,4 @@ plot_roc("My Model", true_labels, test_scores, color=colors[0])
 
 if auc>0.97:
     print('Success!')
-'''
+'''	
