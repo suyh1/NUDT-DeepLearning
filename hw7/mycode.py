@@ -30,6 +30,14 @@ def test():
     # input_a形状为(batch_size,14,14,1),input_b形状为(batch_size,14,14,1),label形状为(batch_size,)
     # def make_batch(batch_size, dataset):
     #     return (input_a, input_b), label
+    '''
+    1. 从dataset中随机采样batch_size个样本，分别为x1_batch和x2_batch
+    2. 从x1_batch中随机采样batch_size/2个样本，分别为x1_pos和x2_pos
+    3. 从x2_batch中随机采样batch_size/2个样本，分别为x1_neg和x2_neg
+    4. 将x1_pos和x2_pos组合成input_a，将x1_neg和x2_neg组合成input_b
+    输入不使用老师那么麻烦的东西，直接用x_train,y_train,x_test,y_test 和 数量
+    输出和老师一样，返回正反例对和对应的标签(0为正，1为反)
+    '''
 
     def make_batch(batch_x, batch_y, num_cls):
         batch_size = len(batch_y)
@@ -63,24 +71,23 @@ def test():
         r_x2_batch = batch_x[x2_index]
         r_y_batch = np.array(batch_y[x1_index] != batch_y[x2_index], dtype=np.float32)
         return (r_x1_batch, r_x2_batch), r_y_batch
+
     # WORK1: --------------END-------------------
 
     # WORK2: --------------BEGIN-------------------
     # 根据make_batch的设计方式，给出相应的train_set、val_set
     # 这两个数据集要作为make_batch(batch_size,dataset)的dataset参数，构成采样数据的来源
+    # 忽略老师上面的提示，这里直接生成fit的输入就完事了
     (r_x1_batch, r_x2_batch), r_y_batch = make_batch(x_train, y_train, 30000)
     (e_x1_batch, e_x2_batch), e_y_batch = make_batch(x_test, y_test, 9000)
 
-
     # WORK2: --------------END-------------------
 
-    def data_generator(batch_size, dataset):
-        while True:
-            yield make_batch(batch_size, dataset)
-
-
+    # yield为啥用到这儿没看懂，反正用不到，直接注释掉
+    # def data_generator(batch_size, dataset):
+    #     while True:
+    #         yield make_batch(batch_size, dataset)
     Q = 5
-
 
     # WORK3: --------------BEGIN-------------------
     # 实现损失函数
@@ -90,7 +97,6 @@ def test():
 
         loss = K.mean(loss_p + loss_n)
         return loss
-
 
     # WORK3: --------------END-------------------
 
@@ -116,6 +122,7 @@ def test():
         distance = K.sqrt(K.sum(tf.square(a - b), axis=1))
         model = tf.keras.Model(inputs=[input_a, input_b], outputs=distance)
         return model
+
     # WORK4: --------------END-------------------
 
     model = build_model()
@@ -126,7 +133,6 @@ def test():
     # (在我们的任务中，反例（y_true=1）的距离大，正例（y_true=0）的距离远，
     # 距离归一化norm(y_pred)后刚好符合反例（y_true=1）概率的变换趋势，1-norm(y_pred)就当作正例概率)
     auc_ = tf.keras.metrics.AUC()
-
 
     def auc(y_true, y_pred):
         y_pred = tf.keras.layers.Flatten()(y_pred)
