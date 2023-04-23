@@ -5,6 +5,8 @@ from tensorflow.keras.utils import plot_model
 from tensorflow.keras import backend as K
 
 num_classes = 10
+
+
 def test():
     path = './dataset/mnist.npz'
     f = np.load(path)
@@ -23,7 +25,6 @@ def test():
     # 测试也是255归一化的数据，请不要改归一化
     x_train = x_train / 255.
     x_test = x_test / 255.
-
 
     # WORK1: --------------BEGIN-------------------
     # 构建数据平衡采样方法：make_batch
@@ -67,7 +68,6 @@ def test():
 
         return (input_a, input_b), label
 
-
     # WORK1: --------------END-------------------
 
     # WORK2: --------------BEGIN-------------------
@@ -76,26 +76,25 @@ def test():
     train_set = [x_train, y_train]
     val_set = [x_test, y_test]
 
-
     # WORK2: --------------END-------------------
 
     def data_generator(batch_size, dataset):
         while True:
             yield make_batch(batch_size, dataset)
 
+    train_data = data_generator(64, train_set)
+    test_data = data_generator(64, val_set)
 
     Q = 5
 
-
     # WORK3: --------------BEGIN-------------------
     # 实现损失函数
-    def loss(label_pair, e_w):
-        loss_p = (1 - label_pair) * 2 / Q * e_w ** 2
-        loss_n = label_pair * 2 * Q * K.exp(-2.77 / Q * e_w)
+    def loss(y_true, y_pred):
+        loss_p = (1 - y_true) * 2 / Q * y_pred ** 2
+        loss_n = y_true * 2 * Q * K.exp(-2.77 / Q * y_pred)
 
         loss = K.mean(loss_p + loss_n)
         return loss
-
 
     # WORK3: --------------END-------------------
 
@@ -103,12 +102,16 @@ def test():
     # 构建siamese模型,输入为[input_a, input_b],输出为distance
     def build_model():
         # 注意，为防止梯度爆炸，对distance添加保护措施
+        input = tf.keras.layers.Input(shape=(14, 14, 1), name='data')
+        reshape = tf.keras.layers.Reshape(target_shape=196, name='reshape')(input)
+        hidden_a = tf.keras.layers.Dense(200, activation='relu', name='hidden1')(reshape)
+        hidden_b = tf.keras.layers.Dense(10, activation='relu', name='hidden2')(hidden_a)
+
         distance = K.sqrt(K.sum(tf.square(hidden_a - hidden_b), axis=1))
-
-
-        model = tf.keras.Model(inputs=, outputs=distance)
+        model = tf.keras.Model(inputs=input, outputs=distance)
 
         return model
+
     # WORK4: --------------END-------------------
 
     model = build_model()
@@ -120,10 +123,7 @@ def test():
     # 距离归一化norm(y_pred)后刚好符合反例（y_true=1）概率的变换趋势，1-norm(y_pred)就当作正例概率)
     auc_ = tf.keras.metrics.AUC()
 
-
     def auc(y_true, y_pred):
-
-
         y_pred = tf.keras.layers.Flatten()(y_pred)
         y_pred = 1 - (y_pred - K.min(y_pred)) / (K.max(y_pred) - K.min(y_pred))
         y_true = 1 - tf.keras.layers.Flatten()(y_true)
@@ -133,10 +133,17 @@ def test():
     # 训练模型，参数可根据自己构建模型选取
     # 对于推荐的两层全连接模型，推荐参数如下：
     # 一般5-8个迭代以内auc可上0.97
-    model.compile(optimizer=, loss=, metrics=[auc])
-    model.fit(, verbose = 2)
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
+                  loss=loss,
+                  metrics=[auc])
+    model.fit(train_data,
+              validation_data=test_data,
+              batch_size=64,
+              epochs=5,
+              verbose=2)
     # WORK5: --------------END-------------------
     return model
+
 
 '''
 import numpy as np
