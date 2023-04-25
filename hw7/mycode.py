@@ -36,7 +36,7 @@ def test():
     3. 从x2_batch中随机采样batch_size/2个样本，分别为x1_neg和x2_neg
     4. 将x1_pos和x2_pos组合成input_a，将x1_neg和x2_neg组合成input_b
     输入不使用老师那么麻烦的东西，直接用x_train,y_train,x_test,y_test 和 数量
-    真不明白明明是处理数据，非要给数据封上一层是什么坏毛病
+    真不明白明明是处理数据，非要给数据封上一层是为啥
     输出和老师一样，返回正反例对和对应的标签(0为正，1为反)
     '''
 
