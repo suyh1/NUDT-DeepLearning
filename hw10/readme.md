@@ -1,12 +1,3 @@
-- [任务描述](https://www.educoder.net/tasks/rsfynfjx/860703/6ux3ypt8rv4z?coursesId=rsfynfjx#任务描述)
-- 相关知识
-  - [Guided Grad-CAM 算法](https://www.educoder.net/tasks/rsfynfjx/860703/6ux3ypt8rv4z?coursesId=rsfynfjx#guided grad-cam 算法)
-  - [算子反向传播修改方法](https://www.educoder.net/tasks/rsfynfjx/860703/6ux3ypt8rv4z?coursesId=rsfynfjx#算子反向传播修改方法)
-- [编程要求](https://www.educoder.net/tasks/rsfynfjx/860703/6ux3ypt8rv4z?coursesId=rsfynfjx#编程要求)
-- [测试说明](https://www.educoder.net/tasks/rsfynfjx/860703/6ux3ypt8rv4z?coursesId=rsfynfjx#测试说明)
-
-------
-
 ### 任务描述
 
 使用Guided Grad-CAM算法对预训练分类网络VGG16进行可视化评估，看他们的grad cam和guided grad cam都在图像中指向了哪里？
