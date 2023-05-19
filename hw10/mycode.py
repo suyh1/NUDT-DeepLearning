@@ -30,6 +30,19 @@ def load_image(path):
 
 
 # TODO 1: 对ReLU层进行自定义，实现梯度修改
+'''
+TODO 1
+根据guided backpropagation公式，搜到了相关的实现：
+https://www.coderskitchen.com/guided-backpropagation-with-pytorch-and-tensorflow/
+@tf.custom_gradient
+def guidedRelu(x):
+    def grad(dy):
+        return tf.cast(dy>0,tf.float32)  * tf.cast(x>0,tf.float32) * dy
+    return tf.nn.relu(x), grad
+很相似啊很相似，改一改就能用力
+'''
+
+
 @tf.custom_gradient
 def gg_relu(x):
     result = tf.keras.activations.relu(x)
@@ -54,14 +67,25 @@ class GGReLuLayer(tf.keras.layers.Layer):
 
 
 # TODO2.1： 实现获取class saliency的功能。提示：class saliency的本质是损失函数对谁的梯度？
+'''
+TODO 2.1
+class saliency 本质上是损失函数对输入图像的梯度。通过自定义梯度的方式实现。
+老师给的代码首先将输入的图像转换为 float32 类型，然后使用 tf.GradientTape 记录前向计算过程。
+补全代码predictions:直接对模型进行调用，获得输出。
+然后老师的代码将损失函数设为预测结果中指定类别的概率，并计算关于输入图像的梯度。
+最后，对梯度进行归一化处理，并返回结果。
+'''
+
+
 def get_class_saliency(model, image, category_index):
     tf_image = K.cast(image, dtype='float32')
     with tf.GradientTape() as tape:
-        tape.watch(tf_image)  # watch谁？
+        tape.watch(tf_image)  # watch谁？当然是tf_image，都给出来了，这不闭着眼填
         predictions = model(tf_image)
         loss = predictions[:, category_index]
 
     saliency = tape.gradient(loss, tf_image)[0]  # 如何得到saliency图像？
+    # 实际上考察的是tape.gradient的用法。tape.gradient(loss, model.trainable_variables)
     saliency = normalize(saliency)
     return saliency
 
@@ -69,6 +93,16 @@ def get_class_saliency(model, image, category_index):
 # TODO2.1 End
 
 # TODO2.2： 实现获取saliency的功能，注意梯度计算与class saliency的区别
+'''
+TODO 2.2
+梯度计算与class saliency的区别:本质上是损失函数对指定层输出的梯度
+老师的代码首先使用 tf.keras.models.Model 构造一个新的模型
+这个模型的输入为原始模型的输入，输出为指定层的输出和原始模型的最终预测结果
+在 tf.GradientTape 中，计算指定层输出对整个模型输出的求和，作为损失函数
+最后，计算损失函数关于输入图像的梯度，并归一化
+'''
+
+
 def get_saliency(model, image, layer_name):
     grad_model = tf.keras.models.Model([model.inputs], [model.get_layer(layer_name).output, model.output])
 
@@ -125,11 +159,23 @@ def deprocess_image(x):
     return x
 
 
+'''
+TODO 3 4
+补全代码：用 tf.keras.models.Model 构造一个新的模型
+和TODO2.2类似，模型的输入为原始模型的输入，输出为指定层的输出和原始模型的最终预测结果
+在 tf.GradientTape 中，计算损失函数关于指定层输出的梯度，并归一化(其实上面的补全就是抄的这里的...)
+然后，使用 np.mean 函数来计算均值，将其作为每个通道的权重
+用for循环遍历所有通道，与相应的权重相乘后累加到 cam 中
+计算完毕后，老师的代码对 cam 进行了裁剪、归一化等一系列处理
+'''
+
+
 def grad_cam(input_model, image, category_index, layer_name):
     nb_classes = 1000
 
     # TODO3: 建立用于获取中间层输出和梯度的模型。注意后续代码中的线索，此模型有两个输出，其中一个是根据'layer_name'定位的层输出，另一个是模型最终的输出
-    grad_model = tf.keras.models.Model([input_model.inputs], [input_model.get_layer(layer_name).output, input_model.output])
+    grad_model = tf.keras.models.Model([input_model.inputs],
+                                       [input_model.get_layer(layer_name).output, input_model.output])
     # TODO3: End
 
     with tf.GradientTape() as tape:
