@@ -1,0 +1,7 @@
+Nose 167 62
+Fuselage 140 105
+Empennage 86 192
+FLwing 68 141
+FRwing 141 186
+BLwing 65 178
+BRwing 108 205
